@@ -2,8 +2,10 @@
  * @NApiVersion 2.x
  * @NScriptType ClientScript
  */
-define(["N/currentRecord", "N/url", "N/format"], function (currentRecord, url, format) {
-    
+define(["N/currentRecord", "N/url", "N/format", "N/https"], function (currentRecord, url, format, https) {
+
+    var invoiceArray = [];
+
     function fieldChanged(scriptContext) {
         var current_record = scriptContext.currentRecord;
 
@@ -37,12 +39,9 @@ define(["N/currentRecord", "N/url", "N/format"], function (currentRecord, url, f
                 window.location.href = suiteletUrl;
             }
         }
-    }
 
-    function getMails(scriptContext){
-        var current_record = scriptContext.currentRecord
+
         if (scriptContext.fieldId === 'custpage_checkbox' && scriptContext.sublistId === 'custpage_sublist') {
-            var invoiceArray = [];
             var noOfLine = current_record.getLineCount({ sublistId: 'custpage_sublist' });
             //alert('no of line ', noOfLine)
             for (var i = 0; i < noOfLine; i++) {
@@ -53,34 +52,39 @@ define(["N/currentRecord", "N/url", "N/format"], function (currentRecord, url, f
                 });
 
                 if (isChecked == true) {
-                    var selectedInvoiceId = current_record.getSublistValue({
+                    var selectedInvoiceInternalId = current_record.getSublistValue({
                         sublistId: 'custpage_sublist',
-                        fieldId: 'custpage_invid',
+                        fieldId: 'custpage_invinternalid',
                         line: i,
                     });
-                    invoiceArray.push(selectedInvoiceId)
+                    invoiceArray.push(selectedInvoiceInternalId)
                 }
-            }
-
-            if (invoiceArray.length > 0) {
-                alert('invoice array length : ' + invoiceArray.length + '  Selected Invoice IDs: ' + invoiceArray.join(", "));
-                // Convert array to comma-separated string to pass in the URL
-                var invoiceParam = invoiceArray.join(',');
-
-                var suiteletUrl = url.resolveScript({
-                    scriptId: "customscript_sl_techassign_q1",
-                    deploymentId: "customdeploy_sl_techassign_q1",
-                    params: {
-                        custpage_invoices: invoiceParam // passed invoice array as  string
-                    }
-                })
-                window.location.href = suiteletUrl
-
-            } else {
-                alert('No invoices selected.');
             }
         }
     }
+
+    function getMails() {
+        if (invoiceArray.length > 0) {
+            alert('invoice array length : ' + invoiceArray.length + '  Selected Invoice IDs: ' + invoiceArray.join(", "));
+
+            var invoiceParam = JSON.stringify(invoiceArray);
+
+            var suiteletUrl = url.resolveScript({
+                scriptId: "customscript_sl_techassign_q1",
+                deploymentId: "customdeploy_sl_techassign_q1",
+                params: {
+                    custpage_invoices: invoiceParam // passed invoice array as string
+                }
+            })
+
+            window.location.href = suiteletUrl
+
+        } else {
+            alert('No invoices selected.');
+        }
+    }
+
+    
 
     return {
         fieldChanged: fieldChanged,
